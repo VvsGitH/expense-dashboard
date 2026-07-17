@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from app import db
+from app.repository import db
 
 
 @pytest.fixture

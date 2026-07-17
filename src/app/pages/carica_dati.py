@@ -1,12 +1,6 @@
-import sys
-from pathlib import Path
-
-_app_dir = next(p for p in Path(__file__).resolve().parents if p.name == "app")
-sys.path.insert(0, str(_app_dir.parent))
-
 import streamlit as st
 
-from app.enums import Bank
+from app.domain.enums import Bank
 from app.service import ingest_file, list_uploads, undo_upload
 
 st.set_page_config(page_title="Carica dati", layout="wide")

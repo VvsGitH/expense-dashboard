@@ -4,10 +4,11 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from app import db, transfers
-from app.categorization import categorize_description
-from app.enums import Bank, TransactionType
+from app.domain import transfers
+from app.domain.categorization import categorize_description
+from app.domain.enums import Bank, TransactionType
 from app.ingestion import bbva, others, poste
+from app.repository import db
 
 _PARSERS = {
     Bank.POSTE: poste.parse,

@@ -2,8 +2,8 @@ import sqlite3
 
 import pandas as pd
 
-from app import db
-from app.enums import TransactionType
+from app.domain.enums import TransactionType
+from app.repository import db
 
 TRANSFER_WINDOW_DAYS = 7
 

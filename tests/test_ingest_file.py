@@ -1,6 +1,6 @@
 import pandas as pd
 
-from app.enums import Bank
+from app.domain.enums import Bank
 from app.service import ingest_file
 from conftest import make_poste_file
 

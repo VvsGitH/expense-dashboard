@@ -1,7 +1,8 @@
 import pandas as pd
 
-from app import db, transfers
-from app.db import TRANSACTION_COLUMNS
+from app.domain import transfers
+from app.repository import db
+from app.repository.db import TRANSACTION_COLUMNS
 from app.service import get_monthly_totals
 
 

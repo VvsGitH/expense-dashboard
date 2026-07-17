@@ -1,8 +1,8 @@
 import pandas as pd
 
-from app import db
-from app.db import TRANSACTION_COLUMNS
-from app.enums import Bank, TransactionType
+from app.domain.enums import Bank, TransactionType
+from app.repository import db
+from app.repository.db import TRANSACTION_COLUMNS
 from app.service import get_transactions
 
 

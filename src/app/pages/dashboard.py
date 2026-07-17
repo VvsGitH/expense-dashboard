@@ -1,15 +1,10 @@
-import sys
-from pathlib import Path
-
-_app_dir = next(p for p in Path(__file__).resolve().parents if p.name == "app")
-sys.path.insert(0, str(_app_dir.parent))
-
 import matplotlib.pyplot as plt
 import streamlit as st
 
-from app import db, transfers
-from app.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
-from app.enums import Bank, TransactionType
+from app.domain import transfers
+from app.domain.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
+from app.domain.enums import Bank, TransactionType
+from app.repository import db
 from app.service import get_category_breakdown, get_monthly_totals, get_transactions
 
 st.set_page_config(page_title="Expenses Dashboard", layout="wide")

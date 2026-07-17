@@ -1,4 +1,4 @@
-from app.categorization import categorize_description
+from app.domain.categorization import categorize_description
 
 
 def test_categorizes_known_keyword_matches():

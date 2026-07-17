@@ -1,7 +1,8 @@
 import pandas as pd
 
-from app import categorization, db, transfers
-from app.db import TRANSACTION_COLUMNS
+from app.domain import categorization, transfers
+from app.repository import db
+from app.repository.db import TRANSACTION_COLUMNS
 from app.service import get_category_breakdown
 
 

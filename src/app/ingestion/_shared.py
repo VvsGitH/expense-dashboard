@@ -1,6 +1,6 @@
 import pandas as pd
 
-from app.enums import TransactionType
+from app.domain.enums import TransactionType
 
 
 def type_from_sign(values: pd.Series) -> pd.Series:

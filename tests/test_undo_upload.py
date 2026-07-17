@@ -1,5 +1,5 @@
-from app import transfers
-from app.enums import Bank
+from app.domain import transfers
+from app.domain.enums import Bank
 from app.service import ingest_file, list_uploads, undo_upload
 
 
