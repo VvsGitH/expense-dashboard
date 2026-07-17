@@ -6,7 +6,15 @@ sys.path.insert(0, str(_app_dir.parent))
 
 import streamlit as st
 
+from app import db, transfers
+
 st.set_page_config(page_title="Expenses Dashboard", layout="wide")
+
+conn = db.get_connection()
+try:
+    transfers.rebuild_cache(conn)
+finally:
+    conn.close()
 
 st.title("Dashboard")
 st.info(

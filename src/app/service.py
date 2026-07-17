@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from app import db
+from app import db, transfers
 from app.enums import Bank
 from app.ingestion import bbva, others, poste
 
@@ -49,6 +49,7 @@ def ingest_file(bank: Bank, file, filename: str, conn=None) -> IngestResult:
         to_insert["source_filename"] = filename
 
         db.insert_transactions(conn, to_insert)
+        transfers.rebuild_cache(conn)
 
         return IngestResult(
             inserted=len(to_insert),
