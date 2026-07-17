@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from app import db, transfers
-from app.enums import Bank
+from app.enums import Bank, TransactionType
 from app.ingestion import bbva, others, poste
 
 _PARSERS = {
@@ -96,6 +96,44 @@ def undo_upload(upload_id: str, conn=None) -> int:
         removed = db.delete_transactions_by_upload(conn, upload_id)
         transfers.rebuild_cache(conn)
         return removed
+    finally:
+        if owns_connection:
+            conn.close()
+
+
+def get_transactions(
+    conn=None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    transaction_type: TransactionType | None = None,
+    bank: Bank | None = None,
+    description_contains: str | None = None,
+) -> list[dict]:
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        transactions = db.read_transactions(conn)
+
+        if date_from is not None:
+            transactions = transactions[transactions["date"] >= pd.Timestamp(date_from)]
+        if date_to is not None:
+            transactions = transactions[transactions["date"] <= pd.Timestamp(date_to)]
+        if transaction_type is not None:
+            transactions = transactions[transactions["type"] == transaction_type.value]
+        if bank is not None:
+            transactions = transactions[transactions["bank"] == bank.value]
+        if description_contains:
+            transactions = transactions[
+                transactions["description"].str.contains(
+                    description_contains, case=False, na=False, regex=False
+                )
+            ]
+
+        transactions = transactions.sort_values("date")
+        records = transactions.to_dict("records")
+        for record in records:
+            record["date"] = record["date"].strftime("%Y-%m-%d")
+        return records
     finally:
         if owns_connection:
             conn.close()
