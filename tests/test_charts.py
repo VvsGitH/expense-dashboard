@@ -1,4 +1,4 @@
-from app.charts import monthly_totals_chart_data
+from app.charts import CATEGORY_COLORS, category_breakdown_chart_data, category_colors, monthly_totals_chart_data
 
 
 def test_monthly_totals_chart_data_shapes_data_for_bar_chart():
@@ -19,3 +19,34 @@ def test_monthly_totals_chart_data_handles_empty_input():
     result = monthly_totals_chart_data([])
 
     assert result.empty
+
+
+def test_category_breakdown_chart_data_shapes_data_for_pie_chart():
+    breakdown = [
+        {"category": "spesa", "value": 80.0},
+        {"category": "salute", "value": 50.0},
+    ]
+
+    result = category_breakdown_chart_data(breakdown)
+
+    assert list(result.index) == ["spesa", "salute"]
+    assert result.loc["spesa"] == 80.0
+    assert result.loc["salute"] == 50.0
+
+
+def test_category_breakdown_chart_data_handles_empty_input():
+    result = category_breakdown_chart_data([])
+
+    assert result.empty
+
+
+def test_category_colors_maps_known_categories():
+    result = category_colors(["spesa", "salute"])
+
+    assert result == [CATEGORY_COLORS["spesa"], CATEGORY_COLORS["salute"]]
+
+
+def test_category_colors_falls_back_to_other_for_unknown_category():
+    result = category_colors(["not-a-real-category"])
+
+    assert result == [CATEGORY_COLORS["other"]]

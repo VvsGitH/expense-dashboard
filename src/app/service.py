@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from app import db, transfers
+from app.categorization import categorize_description
 from app.enums import Bank, TransactionType
 from app.ingestion import bbva, others, poste
 
@@ -111,6 +112,15 @@ def _filter_date_range(
     return transactions
 
 
+def _read_non_transfer_transactions(
+    conn, date_from: str | None, date_to: str | None
+) -> pd.DataFrame:
+    transactions = db.read_transactions(conn)
+    transfer_ids = transfers.get_transfer_leg_ids(conn)
+    transactions = transactions[~transactions["id"].isin(transfer_ids)]
+    return _filter_date_range(transactions, date_from, date_to)
+
+
 def get_transactions(
     conn=None,
     date_from: str | None = None,
@@ -152,10 +162,7 @@ def get_monthly_totals(
     owns_connection = conn is None
     conn = conn or db.get_connection()
     try:
-        transactions = db.read_transactions(conn)
-        transfer_ids = transfers.get_transfer_leg_ids(conn)
-        transactions = transactions[~transactions["id"].isin(transfer_ids)]
-        transactions = _filter_date_range(transactions, date_from, date_to)
+        transactions = _read_non_transfer_transactions(conn, date_from, date_to)
 
         if transactions.empty:
             return []
@@ -176,6 +183,33 @@ def get_monthly_totals(
             .sort_values("month")
         )
         return totals.to_dict("records")
+    finally:
+        if owns_connection:
+            conn.close()
+
+
+def get_category_breakdown(
+    conn=None, date_from: str | None = None, date_to: str | None = None
+) -> list[dict]:
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        transactions = _read_non_transfer_transactions(conn, date_from, date_to)
+
+        expenses = transactions[transactions["type"] == TransactionType.EXPENSE.value]
+        if expenses.empty:
+            return []
+
+        expenses = expenses.assign(
+            category=expenses["description"].apply(categorize_description)
+        )
+        breakdown = (
+            expenses.groupby("category")["value"]
+            .sum()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
+        return breakdown.to_dict("records")
     finally:
         if owns_connection:
             conn.close()

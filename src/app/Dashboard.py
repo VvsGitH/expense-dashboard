@@ -4,12 +4,13 @@ from pathlib import Path
 _app_dir = next(p for p in Path(__file__).resolve().parents if p.name == "app")
 sys.path.insert(0, str(_app_dir.parent))
 
+import matplotlib.pyplot as plt
 import streamlit as st
 
 from app import db, transfers
-from app.charts import monthly_totals_chart_data
+from app.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
 from app.enums import Bank, TransactionType
-from app.service import get_monthly_totals, get_transactions
+from app.service import get_category_breakdown, get_monthly_totals, get_transactions
 
 st.set_page_config(page_title="Expenses Dashboard", layout="wide")
 
@@ -75,3 +76,28 @@ else:
         stack=False,
         use_container_width=True,
     )
+
+st.header("Uscite per Categoria")
+
+col_pie_date_from, col_pie_date_to = st.columns(2)
+pie_date_from = col_pie_date_from.date_input("Da", value=None, key="pie_date_from")
+pie_date_to = col_pie_date_to.date_input("A", value=None, key="pie_date_to")
+
+category_breakdown = get_category_breakdown(
+    date_from=pie_date_from.isoformat() if pie_date_from else None,
+    date_to=pie_date_to.isoformat() if pie_date_to else None,
+)
+category_totals = category_breakdown_chart_data(category_breakdown)
+if category_totals.empty:
+    st.info("Nessuna Uscita nel periodo selezionato.")
+else:
+    fig, ax = plt.subplots()
+    ax.pie(
+        category_totals,
+        labels=category_totals.index,
+        autopct="%1.1f%%",
+        startangle=90,
+        colors=category_colors(category_totals.index),
+    )
+    ax.axis("equal")
+    st.pyplot(fig)
