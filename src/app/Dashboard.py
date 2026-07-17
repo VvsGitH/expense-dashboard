@@ -7,8 +7,9 @@ sys.path.insert(0, str(_app_dir.parent))
 import streamlit as st
 
 from app import db, transfers
+from app.charts import monthly_totals_chart_data
 from app.enums import Bank, TransactionType
-from app.service import get_transactions
+from app.service import get_monthly_totals, get_transactions
 
 st.set_page_config(page_title="Expenses Dashboard", layout="wide")
 
@@ -54,3 +55,23 @@ transactions = get_transactions(
     description_contains=table_description or None,
 )
 st.dataframe(transactions, use_container_width=True)
+
+st.header("Entrate e Uscite mensili")
+
+col_bar_date_from, col_bar_date_to = st.columns(2)
+bar_date_from = col_bar_date_from.date_input("Da", value=None, key="bar_date_from")
+bar_date_to = col_bar_date_to.date_input("A", value=None, key="bar_date_to")
+
+monthly_totals = get_monthly_totals(
+    date_from=bar_date_from.isoformat() if bar_date_from else None,
+    date_to=bar_date_to.isoformat() if bar_date_to else None,
+)
+monthly_totals_df = monthly_totals_chart_data(monthly_totals)
+if monthly_totals_df.empty:
+    st.info("Nessuna Transazione nel periodo selezionato.")
+else:
+    st.bar_chart(
+        monthly_totals_df,
+        stack=False,
+        use_container_width=True,
+    )

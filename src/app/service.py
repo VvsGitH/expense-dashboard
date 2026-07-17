@@ -101,6 +101,16 @@ def undo_upload(upload_id: str, conn=None) -> int:
             conn.close()
 
 
+def _filter_date_range(
+    transactions: pd.DataFrame, date_from: str | None, date_to: str | None
+) -> pd.DataFrame:
+    if date_from is not None:
+        transactions = transactions[transactions["date"] >= pd.Timestamp(date_from)]
+    if date_to is not None:
+        transactions = transactions[transactions["date"] <= pd.Timestamp(date_to)]
+    return transactions
+
+
 def get_transactions(
     conn=None,
     date_from: str | None = None,
@@ -113,11 +123,8 @@ def get_transactions(
     conn = conn or db.get_connection()
     try:
         transactions = db.read_transactions(conn)
+        transactions = _filter_date_range(transactions, date_from, date_to)
 
-        if date_from is not None:
-            transactions = transactions[transactions["date"] >= pd.Timestamp(date_from)]
-        if date_to is not None:
-            transactions = transactions[transactions["date"] <= pd.Timestamp(date_to)]
         if transaction_type is not None:
             transactions = transactions[transactions["type"] == transaction_type.value]
         if bank is not None:
@@ -134,6 +141,41 @@ def get_transactions(
         for record in records:
             record["date"] = record["date"].strftime("%Y-%m-%d")
         return records
+    finally:
+        if owns_connection:
+            conn.close()
+
+
+def get_monthly_totals(
+    conn=None, date_from: str | None = None, date_to: str | None = None
+) -> list[dict]:
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        transactions = db.read_transactions(conn)
+        transfer_ids = transfers.get_transfer_leg_ids(conn)
+        transactions = transactions[~transactions["id"].isin(transfer_ids)]
+        transactions = _filter_date_range(transactions, date_from, date_to)
+
+        if transactions.empty:
+            return []
+
+        transactions = transactions.assign(month=transactions["date"].dt.strftime("%Y-%m"))
+        totals = (
+            transactions.groupby(["month", "type"])["value"]
+            .sum()
+            .unstack(fill_value=0.0)
+            .reindex(columns=[TransactionType.INCOME.value, TransactionType.EXPENSE.value], fill_value=0.0)
+            .rename(
+                columns={
+                    TransactionType.INCOME.value: "income",
+                    TransactionType.EXPENSE.value: "expense",
+                }
+            )
+            .reset_index()
+            .sort_values("month")
+        )
+        return totals.to_dict("records")
     finally:
         if owns_connection:
             conn.close()

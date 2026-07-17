@@ -30,3 +30,11 @@ def rebuild_cache(conn: sqlite3.Connection) -> int:
 def get_transfers(conn: sqlite3.Connection) -> pd.DataFrame:
     """Returns the materialized cross-bank transfer pairs, for debug inspection."""
     return db.read_cross_bank_transfers(conn)
+
+
+def get_transfer_leg_ids(conn: sqlite3.Connection) -> set[int]:
+    """Returns the ids of all transactions that are one leg of a detected cross-bank transfer."""
+    detected = db.read_cross_bank_transfers(conn)
+    if detected.empty:
+        return set()
+    return set(detected["expense_id"]) | set(detected["income_id"])
