@@ -4,12 +4,18 @@
 
 **Blocked by:** Nessuno — può partire subito.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] La pagina "Carica dati" permette di selezionare la Banca (Poste, BBVA, Others) e caricare un file Excel
-- [ ] Ogni Banca usa il parser corretto per il proprio formato di export (colonne/intestazioni specifiche, riusando la logica già presente nel notebook)
-- [ ] Le Transazioni caricate vengono salvate nel DB con date, description, value (sempre positivo), bank, type (Entrata/Uscita), e i metadati del Caricamento (upload_id, uploaded_at, source_filename)
-- [ ] Ricaricare un file che si sovrappone (parzialmente o interamente) a Transazioni già presenti nel DB non crea duplicati, usando la sola esistenza della chiave `(date, value, description, bank)`
-- [ ] Due Transazioni realmente identiche (stessa data, importo, descrizione, banca) vengono trattate come duplicato — comportamento accettato per design
-- [ ] Dopo ogni caricamento viene mostrato un riepilogo con il numero di Transazioni inserite e il numero scartate come duplicate
-- [ ] Test automatici, passando attraverso `ingest_file`, coprono l'ingestion per ciascuna Banca (con fixture Excel sintetiche) e il comportamento di deduplica
+- [x] La pagina "Carica dati" permette di selezionare la Banca (Poste, BBVA, Others) e caricare un file Excel
+- [x] Ogni Banca usa il parser corretto per il proprio formato di export (colonne/intestazioni specifiche, riusando la logica già presente nel notebook)
+- [x] Le Transazioni caricate vengono salvate nel DB con date, description, value (sempre positivo), bank, type (Entrata/Uscita), e i metadati del Caricamento (upload_id, uploaded_at, source_filename)
+- [x] Ricaricare un file che si sovrappone (parzialmente o interamente) a Transazioni già presenti nel DB non crea duplicati, usando la sola esistenza della chiave `(date, value, description, bank)`
+- [x] Due Transazioni realmente identiche (stessa data, importo, descrizione, banca) vengono trattate come duplicato — comportamento accettato per design
+- [x] Dopo ogni caricamento viene mostrato un riepilogo con il numero di Transazioni inserite e il numero scartate come duplicate
+- [x] Test automatici, passando attraverso `ingest_file`, coprono l'ingestion per ciascuna Banca (con fixture Excel sintetiche) e il comportamento di deduplica
+
+## Comments
+
+Implementato con TDD sul seam `ingest_file` (6 test, tutti verdi). Code review a due assi (Standards + Spec) eseguita post-implementazione:
+- Spec: nessuna lacuna, tutti i criteri di accettazione soddisfatti.
+- Standards: risolta un'incoerenza tra ADR-0002 e l'implementazione (colonna `bank_selected` ridondante — il tagging della banca è stato spostato in `service.ingest_file`, unica fonte di verità, invece di essere hardcoded in ciascun parser); estratto un helper condiviso `type_from_sign` per eliminare la logica duplicata di segno→tipologia nei tre parser; reso il bootstrap del path Streamlit indipendente dalla profondità dei file.
