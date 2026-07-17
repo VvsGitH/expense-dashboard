@@ -22,6 +22,15 @@ class IngestResult:
     inserted_transactions: list[dict] = field(default_factory=list)
 
 
+@dataclass
+class Upload:
+    upload_id: str
+    bank: str
+    uploaded_at: str
+    source_filename: str
+    transaction_count: int
+
+
 def ingest_file(bank: Bank, file, filename: str, conn=None) -> IngestResult:
     owns_connection = conn is None
     conn = conn or db.get_connection()
@@ -56,6 +65,37 @@ def ingest_file(bank: Bank, file, filename: str, conn=None) -> IngestResult:
             duplicates=duplicate_count,
             inserted_transactions=to_insert.to_dict("records"),
         )
+    finally:
+        if owns_connection:
+            conn.close()
+
+
+def list_uploads(conn=None) -> list[Upload]:
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        return [
+            Upload(
+                upload_id=row["upload_id"],
+                bank=row["bank"],
+                uploaded_at=row["uploaded_at"],
+                source_filename=row["source_filename"],
+                transaction_count=int(row["transaction_count"]),
+            )
+            for row in db.list_uploads(conn).to_dict("records")
+        ]
+    finally:
+        if owns_connection:
+            conn.close()
+
+
+def undo_upload(upload_id: str, conn=None) -> int:
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        removed = db.delete_transactions_by_upload(conn, upload_id)
+        transfers.rebuild_cache(conn)
+        return removed
     finally:
         if owns_connection:
             conn.close()

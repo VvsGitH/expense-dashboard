@@ -79,6 +79,29 @@ def replace_cross_bank_transfers(conn: sqlite3.Connection, pairs: pd.DataFrame) 
     conn.commit()
 
 
+def list_uploads(conn: sqlite3.Connection) -> pd.DataFrame:
+    return pd.read_sql(
+        """
+        SELECT
+            upload_id,
+            bank,
+            uploaded_at,
+            source_filename,
+            COUNT(*) AS transaction_count
+        FROM transactions
+        GROUP BY upload_id, bank, uploaded_at, source_filename
+        ORDER BY uploaded_at DESC
+        """,
+        conn,
+    )
+
+
+def delete_transactions_by_upload(conn: sqlite3.Connection, upload_id: str) -> int:
+    cursor = conn.execute("DELETE FROM transactions WHERE upload_id = ?", (upload_id,))
+    conn.commit()
+    return cursor.rowcount
+
+
 def read_cross_bank_transfers(conn: sqlite3.Connection) -> pd.DataFrame:
     return pd.read_sql(
         """
