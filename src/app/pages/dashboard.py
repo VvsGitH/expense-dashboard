@@ -50,7 +50,7 @@ transactions = get_transactions(
     bank=table_bank,
     description_contains=table_description or None,
 )
-st.dataframe(transactions, use_container_width=True)
+st.dataframe(transactions, width="stretch")
 
 st.header("Entrate e Uscite mensili")
 
@@ -69,7 +69,7 @@ else:
     st.bar_chart(
         monthly_totals_df,
         stack=False,
-        use_container_width=True,
+        width="stretch",
     )
 
 st.header("Uscite per Categoria")
