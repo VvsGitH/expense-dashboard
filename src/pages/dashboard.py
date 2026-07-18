@@ -5,7 +5,7 @@ import db
 from domain import transfers
 from domain.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
 from domain.enums import Bank, TransactionType
-from service import get_category_breakdown, get_monthly_totals, get_transactions
+from service import get_category_breakdown, get_monthly_cashflow_summary, get_monthly_totals, get_transactions
 
 st.set_page_config(page_title="Expenses Dashboard", layout="wide")
 
@@ -57,11 +57,10 @@ st.header("Entrate e Uscite mensili")
 col_bar_date_from, col_bar_date_to = st.columns(2)
 bar_date_from = col_bar_date_from.date_input("Da", value=None, key="bar_date_from")
 bar_date_to = col_bar_date_to.date_input("A", value=None, key="bar_date_to")
+bar_date_from_iso = bar_date_from.isoformat() if bar_date_from else None
+bar_date_to_iso = bar_date_to.isoformat() if bar_date_to else None
 
-monthly_totals = get_monthly_totals(
-    date_from=bar_date_from.isoformat() if bar_date_from else None,
-    date_to=bar_date_to.isoformat() if bar_date_to else None,
-)
+monthly_totals = get_monthly_totals(date_from=bar_date_from_iso, date_to=bar_date_to_iso)
 monthly_totals_df = monthly_totals_chart_data(monthly_totals)
 if monthly_totals_df.empty:
     st.info("Nessuna Transazione nel periodo selezionato.")
@@ -71,6 +70,20 @@ else:
         stack=False,
         width="stretch",
     )
+
+st.markdown("**Flusso di cassa mensile**")
+
+cashflow_summary = get_monthly_cashflow_summary(date_from=bar_date_from_iso, date_to=bar_date_to_iso)
+if cashflow_summary is None:
+    st.info("Intervallo troppo piccolo per calcolare il flusso di cassa mensile")
+else:
+    col_income, col_expense, col_difference = st.columns(3)
+    col_income.metric("Entrate mensili (media)", f"€ {cashflow_summary.income.mean:.2f}")
+    col_income.metric("Entrate mensili (mediana)", f"€ {cashflow_summary.income.median:.2f}")
+    col_expense.metric("Uscite mensili (media)", f"€ {cashflow_summary.expense.mean:.2f}")
+    col_expense.metric("Uscite mensili (mediana)", f"€ {cashflow_summary.expense.median:.2f}")
+    col_difference.metric("Differenza mensile (media)", f"€ {cashflow_summary.difference.mean:.2f}")
+    col_difference.metric("Differenza mensile (mediana)", f"€ {cashflow_summary.difference.median:.2f}")
 
 st.header("Uscite per Categoria")
 

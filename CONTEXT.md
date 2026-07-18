@@ -24,3 +24,6 @@ Una coppia di Transazioni (una Uscita, una Entrata) con stesso importo, banche d
 
 **Caricamento (Upload Batch)**:
 Un evento di importazione di un file Excel per una singola Banca, tracciato con un identificativo, timestamp, banca selezionata e nome del file sorgente. Permette di annullare l'inserimento di un caricamento errato.
+
+**Flusso di cassa mensile**:
+Media e mediana mensile di Entrate, Uscite e Differenza (Entrate meno Uscite), calcolate mese per mese sulle Transazioni non-Trasferimento nel periodo selezionato, escludendo sempre il mese solare in corso (dati parziali). Calcolato al volo, non persistito nel DB.

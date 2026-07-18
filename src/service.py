@@ -177,6 +177,23 @@ def get_transactions(
             conn.close()
 
 
+def _monthly_income_expense(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Aggregates transactions into a month-indexed ('YYYY-MM') frame with income/expense sums."""
+    transactions = transactions.assign(month=transactions["date"].dt.strftime("%Y-%m"))
+    return (
+        transactions.groupby(["month", "type"])["value"]
+        .sum()
+        .unstack(fill_value=0.0)
+        .reindex(columns=[TransactionType.INCOME.value, TransactionType.EXPENSE.value], fill_value=0.0)
+        .rename(
+            columns={
+                TransactionType.INCOME.value: "income",
+                TransactionType.EXPENSE.value: "expense",
+            }
+        )
+    )
+
+
 def get_monthly_totals(
     conn=None, date_from: str | None = None, date_to: str | None = None
 ) -> list[dict]:
@@ -188,22 +205,65 @@ def get_monthly_totals(
         if transactions.empty:
             return []
 
-        transactions = transactions.assign(month=transactions["date"].dt.strftime("%Y-%m"))
-        totals = (
-            transactions.groupby(["month", "type"])["value"]
-            .sum()
-            .unstack(fill_value=0.0)
-            .reindex(columns=[TransactionType.INCOME.value, TransactionType.EXPENSE.value], fill_value=0.0)
-            .rename(
-                columns={
-                    TransactionType.INCOME.value: "income",
-                    TransactionType.EXPENSE.value: "expense",
-                }
-            )
-            .reset_index()
-            .sort_values("month")
-        )
+        totals = _monthly_income_expense(transactions).reset_index().sort_values("month")
         return totals.to_dict("records")
+    finally:
+        if owns_connection:
+            conn.close()
+
+
+@dataclass
+class MonthlyStat:
+    mean: float
+    median: float
+
+
+@dataclass
+class CashflowSummary:
+    income: MonthlyStat
+    expense: MonthlyStat
+    difference: MonthlyStat
+
+
+def get_monthly_cashflow_summary(
+    conn=None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    today: pd.Timestamp | None = None,
+) -> CashflowSummary | None:
+    """Mean/median of monthly income, expense, and their difference, current month excluded.
+
+    Returns None when the selected range is under a calendar month, or when no
+    complete month of data remains once the current month is excluded.
+    """
+    if date_from is not None and date_to is not None:
+        if pd.Timestamp(date_from) + pd.DateOffset(months=1) > pd.Timestamp(date_to):
+            return None
+
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        transactions = _read_non_transfer_transactions(conn, date_from, date_to)
+        if transactions.empty:
+            return None
+
+        monthly = _monthly_income_expense(transactions)
+
+        current_month = (today or pd.Timestamp.now()).strftime("%Y-%m")
+        monthly = monthly.drop(index=current_month, errors="ignore")
+        if monthly.empty:
+            return None
+
+        monthly = monthly.assign(difference=monthly["income"] - monthly["expense"])
+
+        def _stat(series: pd.Series) -> MonthlyStat:
+            return MonthlyStat(mean=float(series.mean()), median=float(series.median()))
+
+        return CashflowSummary(
+            income=_stat(monthly["income"]),
+            expense=_stat(monthly["expense"]),
+            difference=_stat(monthly["difference"]),
+        )
     finally:
         if owns_connection:
             conn.close()
