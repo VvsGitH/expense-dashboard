@@ -7,7 +7,17 @@ from domain.charts import category_breakdown_chart_data, category_colors, monthl
 from domain.enums import Bank, TransactionType
 from service import get_category_breakdown, get_monthly_cashflow_summary, get_monthly_totals, get_transactions
 
-st.set_page_config(page_title="Expenses Dashboard", layout="wide")
+st.set_page_config(page_title="Expenses Dashboard", layout="centered")
+st.markdown(
+    """
+    <style>
+    section[data-testid="stMain"] > div[data-testid="stMainBlockContainer"] {
+        max-width: 1024px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 conn = db.get_connection()
 try:
@@ -71,7 +81,7 @@ else:
         width="stretch",
     )
 
-st.markdown("**Flusso di cassa mensile**")
+st.subheader("Flusso di cassa mensile")
 
 cashflow_summary = get_monthly_cashflow_summary(date_from=bar_date_from_iso, date_to=bar_date_to_iso)
 if cashflow_summary is None:

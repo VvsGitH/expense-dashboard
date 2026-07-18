@@ -3,7 +3,17 @@ import streamlit as st
 from domain.enums import Bank
 from service import ingest_file, list_uploads, undo_upload
 
-st.set_page_config(page_title="Carica dati", layout="wide")
+st.set_page_config(page_title="Carica dati", layout="centered")
+st.markdown(
+    """
+    <style>
+    section[data-testid="stMain"] > div[data-testid="stMainBlockContainer"] {
+        max-width: 1024px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 st.title("Carica dati")
 
 BANK_LABELS = {
