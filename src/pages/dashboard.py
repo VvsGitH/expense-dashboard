@@ -64,6 +64,8 @@ st.dataframe(transactions, width="stretch")
 
 st.header("Entrate e Uscite mensili")
 
+st.subheader("Andamento mese per mese")
+
 col_bar_date_from, col_bar_date_to = st.columns(2)
 bar_date_from = col_bar_date_from.date_input("Da", value=None, key="bar_date_from")
 bar_date_to = col_bar_date_to.date_input("A", value=None, key="bar_date_to")
