@@ -42,7 +42,7 @@ def _seed(conn):
 def test_returns_monthly_income_and_expense_totals(conn):
     _seed(conn)
 
-    result = get_monthly_totals(conn=conn)
+    result = get_monthly_totals(conn=conn, today=pd.Timestamp("2024-06-15"))
 
     by_month = {row["month"]: row for row in result}
     assert by_month["2024-01"]["income"] == 1500.0
@@ -54,7 +54,7 @@ def test_returns_monthly_income_and_expense_totals(conn):
 def test_excludes_cross_bank_transfer_pairs_from_monthly_totals(conn):
     _seed(conn)
 
-    result = get_monthly_totals(conn=conn)
+    result = get_monthly_totals(conn=conn, today=pd.Timestamp("2024-06-15"))
 
     by_month = {row["month"]: row for row in result}
     assert by_month["2024-03"]["income"] == 300.0
@@ -64,7 +64,9 @@ def test_excludes_cross_bank_transfer_pairs_from_monthly_totals(conn):
 def test_respects_own_date_range(conn):
     _seed(conn)
 
-    result = get_monthly_totals(conn=conn, date_from="2024-02-01", date_to="2024-02-29")
+    result = get_monthly_totals(
+        conn=conn, date_from="2024-02-01", date_to="2024-02-29", today=pd.Timestamp("2024-06-15")
+    )
 
     assert {row["month"] for row in result} == {"2024-02"}
 
@@ -72,6 +74,17 @@ def test_respects_own_date_range(conn):
 def test_returns_empty_list_when_no_transactions_in_range(conn):
     _seed(conn)
 
-    result = get_monthly_totals(conn=conn, date_from="2025-01-01", date_to="2025-01-31")
+    result = get_monthly_totals(
+        conn=conn, date_from="2025-01-01", date_to="2025-01-31", today=pd.Timestamp("2024-06-15")
+    )
 
     assert result == []
+
+
+def test_excludes_current_month_from_monthly_totals(conn):
+    _seed(conn)
+
+    result = get_monthly_totals(conn=conn, today=pd.Timestamp("2024-03-15"))
+
+    months = {row["month"] for row in result}
+    assert months == {"2024-01", "2024-02"}

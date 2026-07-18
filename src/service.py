@@ -195,8 +195,12 @@ def _monthly_income_expense(transactions: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_monthly_totals(
-    conn=None, date_from: str | None = None, date_to: str | None = None
+    conn=None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    today: pd.Timestamp | None = None,
 ) -> list[dict]:
+    """Monthly income/expense totals, current month always excluded (partial data)."""
     owns_connection = conn is None
     conn = conn or db.get_connection()
     try:
@@ -205,7 +209,11 @@ def get_monthly_totals(
         if transactions.empty:
             return []
 
-        totals = _monthly_income_expense(transactions).reset_index().sort_values("month")
+        monthly = _monthly_income_expense(transactions)
+        current_month = (today or pd.Timestamp.now()).strftime("%Y-%m")
+        monthly = monthly.drop(index=current_month, errors="ignore")
+
+        totals = monthly.reset_index().sort_values("month")
         return totals.to_dict("records")
     finally:
         if owns_connection:
