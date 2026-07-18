@@ -3,7 +3,15 @@ from pathlib import Path
 
 import pandas as pd
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parents[3] / "data" / "expenses.db"
+
+def _find_repo_root() -> Path:
+    for directory in Path(__file__).resolve().parents:
+        if (directory / ".git").exists():
+            return directory
+    raise RuntimeError("Could not locate repo root (no .git ancestor found)")
+
+
+DEFAULT_DB_PATH = _find_repo_root() / "data" / "expenses.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS transactions (

@@ -1,6 +1,6 @@
-from app.domain import transfers
-from app.domain.enums import Bank
-from app.service import ingest_file, list_uploads, undo_upload
+from domain import transfers
+from domain.enums import Bank
+from service import ingest_file, list_uploads, undo_upload
 
 
 def test_undo_upload_removes_only_that_batch_transactions(conn, poste_file, others_file):

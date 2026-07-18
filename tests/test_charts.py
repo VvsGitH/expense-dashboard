@@ -1,4 +1,4 @@
-from app.domain.charts import CATEGORY_COLORS, category_breakdown_chart_data, category_colors, monthly_totals_chart_data
+from domain.charts import CATEGORY_COLORS, category_breakdown_chart_data, category_colors, monthly_totals_chart_data
 
 
 def test_monthly_totals_chart_data_shapes_data_for_bar_chart():

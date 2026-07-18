@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import streamlit as st
 
-from app.domain import transfers
-from app.domain.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
-from app.domain.enums import Bank, TransactionType
-from app.repository import db
-from app.service import get_category_breakdown, get_monthly_totals, get_transactions
+import db
+from domain import transfers
+from domain.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
+from domain.enums import Bank, TransactionType
+from service import get_category_breakdown, get_monthly_totals, get_transactions
 
 st.set_page_config(page_title="Expenses Dashboard", layout="wide")
 

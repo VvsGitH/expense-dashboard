@@ -1,7 +1,7 @@
 import streamlit as st
 
-from app.domain.enums import Bank
-from app.service import ingest_file, list_uploads, undo_upload
+from domain.enums import Bank
+from service import ingest_file, list_uploads, undo_upload
 
 st.set_page_config(page_title="Carica dati", layout="wide")
 st.title("Carica dati")

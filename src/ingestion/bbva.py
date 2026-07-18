@@ -1,6 +1,6 @@
 import pandas as pd
 
-from app.ingestion._shared import type_from_sign
+from ingestion._shared import type_from_sign
 
 SHEET_NAME = "Informe BBVA"
 HEADER_ROW = 4

@@ -1,8 +1,8 @@
 import pandas as pd
 
-from app.domain import transfers
-from app.repository import db
-from app.repository.db import TRANSACTION_COLUMNS
+import db
+from db import TRANSACTION_COLUMNS
+from domain import transfers
 
 
 def _insert(conn, *, date, description, value, bank, type_, upload_id="up-1"):
@@ -78,9 +78,9 @@ def test_rebuild_replaces_cache_instead_of_accumulating(conn):
 
 
 def test_ingest_file_triggers_cache_rebuild(conn, tmp_path):
-    from app.domain.enums import Bank
-    from app.service import ingest_file
     from conftest import make_bbva_file, make_poste_file
+    from domain.enums import Bank
+    from service import ingest_file
 
     poste_file = make_poste_file(
         tmp_path / "poste.xlsx",

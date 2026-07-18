@@ -17,3 +17,7 @@
 - [x] `tests/` resta piatta, nessuna riorganizzazione in sottocartelle
 - [x] Tutti gli import esistenti (in `src/app/` e `tests/`) sono aggiornati ai nuovi percorsi dei moduli
 - [x] La suite di test esistente (42 test) passa invariata dopo il refactor, senza necessità di nuovi test
+
+## Comments
+
+La motivazione al punto "solo posizione/nome della cartella, nessun nuovo pattern Repository" non vale più: il nome `repository/` continuava a suggerire un pattern architetturale non adottato dal progetto. Vedi ticket [02](./02-rimozione-app-e-repository.md), che rimuove sia `app/` che `repository/` appiattendo tutto sotto `src/`.

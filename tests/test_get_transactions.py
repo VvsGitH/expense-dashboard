@@ -1,9 +1,9 @@
 import pandas as pd
 
-from app.domain.enums import Bank, TransactionType
-from app.repository import db
-from app.repository.db import TRANSACTION_COLUMNS
-from app.service import get_transactions
+import db
+from db import TRANSACTION_COLUMNS
+from domain.enums import Bank, TransactionType
+from service import get_transactions
 
 
 def _insert(conn, *, date, description, value, bank, type_, upload_id="up-1"):

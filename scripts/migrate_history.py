@@ -17,9 +17,9 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from app.domain.enums import Bank  # noqa: E402
-from app.repository import db  # noqa: E402
-from app.service import ingest_file  # noqa: E402
+import db  # noqa: E402
+from domain.enums import Bank  # noqa: E402
+from service import ingest_file  # noqa: E402
 
 DATA_DIR = _REPO_ROOT / "data"
 

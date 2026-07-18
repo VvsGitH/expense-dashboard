@@ -17,10 +17,10 @@ pip install -r requirements.txt
 ## Avviare la web application
 
 ```
-streamlit run src/app/router.py
+streamlit run src/router.py
 ```
 
-`router.py` è l'entrypoint: registra le pagine (`Dashboard`, `Carica dati`) tramite `st.Page`/`st.navigation` e si occupa del fixup di `sys.path` necessario per gli import interni (`from app...`).
+`router.py` è l'entrypoint: registra le pagine (`Dashboard`, `Carica dati`) tramite `st.Page`/`st.navigation`.
 
 ## Eseguire i test
 
@@ -40,12 +40,12 @@ python scripts/migrate_history.py
 ## Struttura del progetto
 
 ```
-src/app/
+src/
   domain/       # enums, categorizzazione, trasferimenti cross-bank, dati per i grafici
-  repository/   # accesso a SQLite (db.py)
   ingestion/    # parser per i formati Excel di ciascuna banca
   pages/        # pagine Streamlit (dashboard.py, carica_dati.py)
-  service.py    # seam applicativo testato, orchestration tra repository/domain/ingestion
+  db.py         # accesso a SQLite
+  service.py    # seam applicativo testato, orchestration tra db/domain/ingestion
   router.py     # entrypoint Streamlit
 scripts/        # utility one-off (migrate_history.py)
 tests/          # suite di test, piatta

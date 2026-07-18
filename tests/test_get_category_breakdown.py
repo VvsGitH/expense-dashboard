@@ -1,9 +1,9 @@
 import pandas as pd
 
-from app.domain import categorization, transfers
-from app.repository import db
-from app.repository.db import TRANSACTION_COLUMNS
-from app.service import get_category_breakdown
+import db
+from db import TRANSACTION_COLUMNS
+from domain import categorization, transfers
+from service import get_category_breakdown
 
 
 def _insert(conn, *, date, description, value, bank, type_, upload_id="up-1"):

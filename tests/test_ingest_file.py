@@ -1,8 +1,8 @@
 import pandas as pd
 
-from app.domain.enums import Bank
-from app.service import ingest_file
 from conftest import make_poste_file
+from domain.enums import Bank
+from service import ingest_file
 
 
 def test_ingest_poste_file_stores_parsed_transactions(conn, poste_file):

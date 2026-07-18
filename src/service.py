@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from app.domain import transfers
-from app.domain.categorization import categorize_description
-from app.domain.enums import Bank, TransactionType
-from app.ingestion import bbva, others, poste
-from app.repository import db
+import db
+from domain import transfers
+from domain.categorization import categorize_description
+from domain.enums import Bank, TransactionType
+from ingestion import bbva, others, poste
 
 _PARSERS = {
     Bank.POSTE: poste.parse,
