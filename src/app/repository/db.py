@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "expenses.db"
+DEFAULT_DB_PATH = Path(__file__).resolve().parents[3] / "data" / "expenses.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS transactions (
