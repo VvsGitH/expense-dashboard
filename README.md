@@ -11,7 +11,7 @@ In un terminale, dalla root del progetto:
 ```
 python -m venv ./venv
 ./venv/Scripts/activate
-pip install streamlit pandas matplotlib rapidfuzz openpyxl pytest
+pip install -r requirements.txt
 ```
 
 ## Avviare la web application
@@ -28,6 +28,15 @@ streamlit run src/app/router.py
 pytest
 ```
 
+## Migrazione dello storico (una tantum)
+
+Per importare i tre file Excel storici (`data/movimenti_*.xlsx`) nel DB riusando la
+stessa pipeline di ingestion della webapp — escludendo la nota transazione TFR:
+
+```
+python scripts/migrate_history.py
+```
+
 ## Struttura del progetto
 
 ```
@@ -38,5 +47,6 @@ src/app/
   pages/        # pagine Streamlit (dashboard.py, carica_dati.py)
   service.py    # seam applicativo testato, orchestration tra repository/domain/ingestion
   router.py     # entrypoint Streamlit
+scripts/        # utility one-off (migrate_history.py)
 tests/          # suite di test, piatta
 ```

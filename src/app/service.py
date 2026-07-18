@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -21,6 +22,7 @@ _PARSERS = {
 class IngestResult:
     inserted: int
     duplicates: int
+    excluded: int = 0
     inserted_transactions: list[dict] = field(default_factory=list)
 
 
@@ -33,7 +35,20 @@ class Upload:
     transaction_count: int
 
 
-def ingest_file(bank: Bank, file, filename: str, conn=None) -> IngestResult:
+def ingest_file(
+    bank: Bank,
+    file,
+    filename: str,
+    conn=None,
+    exclude: Callable[[dict], bool] | None = None,
+) -> IngestResult:
+    """Parses and stores a bank export, skipping duplicates.
+
+    `exclude` is an optional predicate on a parsed row (keys: date, description,
+    value, bank, type); matching rows are dropped before insertion and neither
+    inserted nor counted as duplicates. Used by the history migration to drop
+    the known TFR transaction.
+    """
     owns_connection = conn is None
     conn = conn or db.get_connection()
     try:
@@ -44,7 +59,11 @@ def ingest_file(bank: Bank, file, filename: str, conn=None) -> IngestResult:
         seen = db.existing_keys(conn, bank.value)
         inserted_rows = []
         duplicate_count = 0
+        excluded_count = 0
         for row in parsed.to_dict("records"):
+            if exclude is not None and exclude(row):
+                excluded_count += 1
+                continue
             key = (row["date"], row["value"], row["description"])
             if key in seen:
                 duplicate_count += 1
@@ -65,6 +84,7 @@ def ingest_file(bank: Bank, file, filename: str, conn=None) -> IngestResult:
         return IngestResult(
             inserted=len(to_insert),
             duplicates=duplicate_count,
+            excluded=excluded_count,
             inserted_transactions=to_insert.to_dict("records"),
         )
     finally:

@@ -107,6 +107,46 @@ def test_overlapping_upload_inserts_only_the_new_row(conn, poste_file, tmp_path)
     assert result.inserted_transactions[0]["description"] == "Supermercato Coop"
 
 
+def test_excluded_rows_are_skipped_and_counted(conn, poste_file):
+    # The migration passes a predicate to drop a known transaction (the TFR)
+    # without inserting it, identifying it by its business fields.
+    def is_farmacia(row):
+        return row["description"] == "Farmacia Rossi"
+
+    with open(poste_file, "rb") as f:
+        result = ingest_file(Bank.POSTE, f, "poste.xlsx", conn=conn, exclude=is_farmacia)
+
+    assert result.inserted == 1
+    assert result.excluded == 1
+    assert result.duplicates == 0
+    descriptions = {row["description"] for row in result.inserted_transactions}
+    assert descriptions == {"Stipendio Gennaio"}
+
+
+def test_excluded_row_is_skipped_before_the_duplicate_check(conn, poste_file):
+    # Pre-populate so both rows already exist in the DB.
+    with open(poste_file, "rb") as f:
+        ingest_file(Bank.POSTE, f, "poste.xlsx", conn=conn)
+
+    def is_farmacia(row):
+        return row["description"] == "Farmacia Rossi"
+
+    # Re-ingesting with the predicate: the excluded row must count as excluded,
+    # not as a duplicate, even though it is already present.
+    with open(poste_file, "rb") as f:
+        result = ingest_file(Bank.POSTE, f, "poste.xlsx", conn=conn, exclude=is_farmacia)
+
+    assert result.excluded == 1
+    assert result.duplicates == 1  # only "Stipendio Gennaio" is seen as duplicate
+    assert result.inserted == 0
+
+
+def test_no_predicate_excludes_nothing(conn, poste_file):
+    with open(poste_file, "rb") as f:
+        result = ingest_file(Bank.POSTE, f, "poste.xlsx", conn=conn)
+    assert result.excluded == 0
+
+
 def test_two_identical_rows_in_the_same_file_are_treated_as_one_duplicate(conn, tmp_path):
     # Deliberately accepted limitation of existence-only dedup (ADR-0002): two
     # genuinely identical transactions on the same day collapse into one.
