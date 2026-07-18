@@ -17,12 +17,30 @@ CATEGORY_COLORS = {
 }
 
 
+def _monthly_totals_frame(monthly_totals: list[dict]) -> pd.DataFrame:
+    """Shapes get_monthly_totals's output into a month-indexed DataFrame with raw income/expense."""
+    return pd.DataFrame(monthly_totals, columns=["month", "income", "expense"]).set_index("month")
+
+
 def monthly_totals_chart_data(monthly_totals: list[dict]) -> pd.DataFrame:
     """Shapes get_monthly_totals's output into a month-indexed DataFrame ready for a bar chart."""
-    return (
-        pd.DataFrame(monthly_totals, columns=["month", "income", "expense"])
-        .rename(columns=MONTHLY_TOTALS_COLUMNS)
-        .set_index("month")
+    return _monthly_totals_frame(monthly_totals).rename(columns=MONTHLY_TOTALS_COLUMNS)
+
+
+def savings_trend_chart_data(monthly_totals: list[dict]) -> pd.DataFrame:
+    """Shapes get_monthly_totals's output into a month-indexed DataFrame ready for a line chart.
+
+    "Differenza mensile" is income minus expense per month; "Risparmio teorico
+    accumulato" is its running cumulative sum, restarting from zero at the
+    first month present in the input (see docs/adr/0004).
+    """
+    monthly = _monthly_totals_frame(monthly_totals)
+    difference = monthly["income"] - monthly["expense"]
+    return pd.DataFrame(
+        {
+            "Differenza mensile": difference,
+            "Risparmio teorico accumulato": difference.cumsum(),
+        }
     )
 
 

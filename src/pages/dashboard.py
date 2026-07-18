@@ -3,7 +3,12 @@ import streamlit as st
 
 import db
 from domain import transfers
-from domain.charts import category_breakdown_chart_data, category_colors, monthly_totals_chart_data
+from domain.charts import (
+    category_breakdown_chart_data,
+    category_colors,
+    monthly_totals_chart_data,
+    savings_trend_chart_data,
+)
 from domain.enums import Bank, TransactionType
 from service import get_category_breakdown, get_monthly_cashflow_summary, get_monthly_totals, get_transactions
 
@@ -80,6 +85,16 @@ else:
     st.bar_chart(
         monthly_totals_df,
         stack=False,
+        width="stretch",
+    )
+
+st.subheader("Andamento risparmi")
+
+if monthly_totals_df.empty:
+    st.info("Nessuna Transazione nel periodo selezionato.")
+else:
+    st.line_chart(
+        savings_trend_chart_data(monthly_totals),
         width="stretch",
     )
 
