@@ -50,3 +50,21 @@ src/
 scripts/        # utility one-off (migrate_history.py)
 tests/          # suite di test, piatta
 ```
+
+## Interfaccia
+
+### Caricamento dati
+
+![Caricamento dati](docs/assets/caricamento-dati.png)
+
+### Tabella transazioni
+
+![Tabella transazioni](docs/assets/tabella-transazioni.png)
+
+### Entrate e uscite mensili
+
+![Entrate e uscite mensili](docs/assets/entrate-uscite-mensili.png)
+
+### Uscite per categoria
+
+![Uscite per categoria](docs/assets/uscite-per-categoria.png)
