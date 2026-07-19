@@ -1,11 +1,14 @@
-import matplotlib.pyplot as plt
+import altair as alt
 import streamlit as st
 
 import db
 from domain import transfers
 from domain.charts import (
+    CATEGORY_TOTAL_COLUMN,
     category_breakdown_chart_data,
+    category_breakdown_table_data,
     category_colors,
+    category_names,
     monthly_totals_chart_data,
     savings_trend_chart_data,
 )
@@ -114,25 +117,30 @@ else:
 
 st.header("Uscite per Categoria")
 
-col_pie_date_from, col_pie_date_to = st.columns(2)
-pie_date_from = col_pie_date_from.date_input("Da", value=None, key="pie_date_from")
-pie_date_to = col_pie_date_to.date_input("A", value=None, key="pie_date_to")
+col_category_date_from, col_category_date_to = st.columns(2)
+category_date_from = col_category_date_from.date_input("Da", value=None, key="category_date_from")
+category_date_to = col_category_date_to.date_input("A", value=None, key="category_date_to")
 
 category_breakdown = get_category_breakdown(
-    date_from=pie_date_from.isoformat() if pie_date_from else None,
-    date_to=pie_date_to.isoformat() if pie_date_to else None,
+    date_from=category_date_from.isoformat() if category_date_from else None,
+    date_to=category_date_to.isoformat() if category_date_to else None,
 )
 category_totals = category_breakdown_chart_data(category_breakdown)
 if category_totals.empty:
     st.info("Nessuna Uscita nel periodo selezionato.")
 else:
-    fig, ax = plt.subplots()
-    ax.pie(
-        category_totals,
-        labels=category_totals.index,
-        autopct="%1.1f%%",
-        startangle=90,
-        colors=category_colors(category_totals.index),
+    known_categories = category_names()
+    category_color_scale = alt.Scale(domain=known_categories, range=category_colors(known_categories))
+    category_chart_data = category_totals.rename_axis("Categoria").reset_index(name=CATEGORY_TOTAL_COLUMN)
+    category_chart = (
+        alt.Chart(category_chart_data)
+        .mark_bar()
+        .encode(
+            x=alt.X(f"{CATEGORY_TOTAL_COLUMN}:Q"),
+            y=alt.Y("Categoria:N", sort="-x"),
+            color=alt.Color("Categoria:N", scale=category_color_scale, legend=None),
+            tooltip=["Categoria", CATEGORY_TOTAL_COLUMN],
+        )
     )
-    ax.axis("equal")
-    st.pyplot(fig)
+    st.altair_chart(category_chart, width="stretch")
+    st.dataframe(category_breakdown_table_data(category_breakdown), width="stretch")

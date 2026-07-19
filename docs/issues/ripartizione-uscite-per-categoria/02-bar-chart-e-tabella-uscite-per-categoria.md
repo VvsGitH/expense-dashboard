@@ -4,16 +4,26 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Nuova funzione pura `domain.charts.category_breakdown_table_data(breakdown: list[dict]) -> pd.DataFrame`: stesso input di `category_breakdown_chart_data` (output grezzo di `get_category_breakdown`), restituisce un DataFrame indicizzato per Categoria, ordinato per importo decrescente, con colonne per l'importo in € e la percentuale sul totale (somma di tutti gli importi in input); con input vuoto restituisce un DataFrame vuoto
-- [ ] Test in `tests/test_charts.py` per `category_breakdown_table_data`: ordinamento decrescente, importo e percentuale corretti su un breakdown noto di almeno 3 categorie, e caso input vuoto → DataFrame vuoto
-- [ ] Nella pagina Dashboard, il blocco matplotlib (`plt.subplots()` / `ax.pie(...)` / `st.pyplot(fig)`) è sostituito da `st.bar_chart` con `horizontal=True`, ordinamento decrescente per importo, e colore per Categoria tramite `category_colors`
-- [ ] Sotto/accanto al bar chart, la tabella prodotta da `category_breakdown_table_data` è resa con `st.dataframe`
-- [ ] Il tooltip on-hover del bar chart mostra il valore della barra (comportamento nativo di `st.bar_chart`, nessuna configurazione aggiuntiva richiesta)
-- [ ] Il filtro di date indipendente della sezione continua a funzionare esattamente come oggi
-- [ ] Quando non ci sono Uscite nel periodo selezionato, resta il messaggio informativo esistente ("Nessuna Uscita nel periodo selezionato."), invece di grafico e tabella vuoti
-- [ ] Le chiavi dei widget data-range e le relative variabili Python, oggi `pie_date_from`/`pie_date_to`, sono rinominate (es. prefisso `category_` al posto di `pie_`) per riflettere che non è più un grafico a torta
-- [ ] L'import `matplotlib.pyplot` è rimosso da `src/pages/dashboard.py` (nessun altro utilizzo nel file dopo questa modifica)
-- [ ] La dipendenza `matplotlib` è rimossa da `requirements.txt`
-- [ ] Verificato in browser: upload di Uscite in categorie diverse, bar chart con barre ordinate per importo decrescente e colori distinti, tabella affiancata coerente con i valori del grafico, tooltip on-hover funzionante, filtro data indipendente della sezione invariato
+- [x] Nuova funzione pura `domain.charts.category_breakdown_table_data(breakdown: list[dict]) -> pd.DataFrame`: stesso input di `category_breakdown_chart_data` (output grezzo di `get_category_breakdown`), restituisce un DataFrame indicizzato per Categoria, ordinato per importo decrescente, con colonne per l'importo in € e la percentuale sul totale (somma di tutti gli importi in input); con input vuoto restituisce un DataFrame vuoto
+- [x] Test in `tests/test_charts.py` per `category_breakdown_table_data`: ordinamento decrescente, importo e percentuale corretti su un breakdown noto di almeno 3 categorie, e caso input vuoto → DataFrame vuoto
+- [x] Nella pagina Dashboard, il blocco matplotlib (`plt.subplots()` / `ax.pie(...)` / `st.pyplot(fig)`) è sostituito da un bar chart orizzontale ordinato per importo decrescente, con colore per Categoria — reso con `st.altair_chart` invece di `st.bar_chart` nativo (vedi Comments: `st.bar_chart` con colori letterali per riga si è rivelato bacato)
+- [x] Sotto il bar chart, la tabella prodotta da `category_breakdown_table_data` è resa con `st.dataframe`
+- [x] Il tooltip on-hover del bar chart mostra il valore della barra (encoding `tooltip=[...]` esplicito in Altair, verificato in browser)
+- [x] Il filtro di date indipendente della sezione continua a funzionare esattamente come oggi (logica invariata, solo variabili rinominate)
+- [x] Quando non ci sono Uscite nel periodo selezionato, resta il messaggio informativo esistente ("Nessuna Uscita nel periodo selezionato."), invece di grafico e tabella vuoti
+- [x] Le chiavi dei widget data-range e le relative variabili Python, oggi `pie_date_from`/`pie_date_to`, sono rinominate (es. prefisso `category_` al posto di `pie_`) per riflettere che non è più un grafico a torta
+- [x] L'import `matplotlib.pyplot` è rimosso da `src/pages/dashboard.py` (nessun altro utilizzo nel file dopo questa modifica)
+- [x] La dipendenza `matplotlib` è rimossa da `requirements.txt`
+- [x] Verificato in browser: upload di Uscite in categorie diverse, bar chart con barre ordinate per importo decrescente e colori distinti, tabella affiancata coerente con i valori del grafico, tooltip on-hover funzionante, filtro data indipendente della sezione invariato
+
+## Comments
+
+Implementato con TDD il seam puro: `category_breakdown_table_data` in `src/domain/charts.py`, 2 nuovi test in `tests/test_charts.py` (ordinamento decrescente + percentuali su breakdown noto, caso vuoto), seguendo lo stile già presente nel file.
+
+**Deviazione dal What-to-build originale, scoperta durante l'implementazione**: la ticket descriveva `st.bar_chart` nativo con `color=category_colors(...)` (una lista di colori, uno per categoria). In pratica, `st.bar_chart` con una lista di colori letterali per riga combinata con `sort=` si è rivelata bacata: verificando i colori effettivamente renderizzati (ispezione DOM/SVG dei `fill` reali), le barre risultavano colorate con la categoria "sbagliata" (es. "other" con il colore di "contanti") — un bug reale di Vega-Lite/Streamlit, non solo estetico: costruisce un dominio ordinato alfabeticamente sugli hex e un range preso dall'ordine di comparsa dei dati, invece di un pass-through letterale riga-per-riga. Risolto passando da `st.bar_chart` a `st.altair_chart` con uno `alt.Scale(domain=<nomi categoria>, range=<colori>)` esplicito, che elimina il problema alla radice mappando dominio→range letteralmente. Riusa comunque `category_colors()` (la funzione nominata dalla ticket) per costruire il range. Verificato via ispezione DOM che tutte le 11 barre hanno ora il colore esatto della propria categoria, e via hover reale (browser) che il tooltip mostra "Categoria" e "Totale (€)" corretti.
+
+Code review a due assi: Spec pulita (nessuna lacuna, la sostituzione st.bar_chart→st.altair_chart non è stata segnalata come difetto avendo motivazione verificata). Standards ha segnalato 3 judgement call, tutti risolti: Feature Envy per l'accesso diretto di `dashboard.py` a `CATEGORY_COLORS` — estratta una funzione `charts.category_names()`; stringa `"Totale (€)"` duplicata tra `charts.py` e `dashboard.py` — estratta una costante condivisa `charts.CATEGORY_TOTAL_COLUMN`; docstring non aggiornate dopo il passaggio da torta a barre (`category_colors`, `category_breakdown_chart_data`) — aggiornate. Non applicato un quarto judgement call minore (convenzione di rinomina colonne tramite dizionario come `MONTHLY_TOTALS_COLUMNS`) perché la situazione è diversa: qui si aggiunge una colonna percentuale calcolata, non si rinominano colonne esistenti.
+
+Verificato in browser (Streamlit dev server, dati reali già presenti nel DB) sia prima sia dopo il fix del bug colori e dopo i refactor di code review: bar chart orizzontale ordinato per importo decrescente, 11 colori tutti corretti (confermato via ispezione DOM dei `fill` SVG), tabella affiancata coerente con i valori del grafico, tooltip on-hover funzionante (mostra "Categoria" e "Totale (€)" corretti). Il filtro data indipendente della sezione non è stato modificato nella logica (solo rinominato `pie_*` → `category_*`); non verificato end-to-end via automazione browser per un limite del date-picker Streamlit con l'automazione headless (stesso limite per gli altri filtri data della pagina, preesistente e non introdotto da questo lavoro) — la logica di filtro è coperta dai test esistenti di `get_category_breakdown`, non toccati da questa ticket.

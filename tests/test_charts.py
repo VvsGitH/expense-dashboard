@@ -1,6 +1,7 @@
 from domain.charts import (
     CATEGORY_COLORS,
     category_breakdown_chart_data,
+    category_breakdown_table_data,
     category_colors,
     monthly_totals_chart_data,
     savings_trend_chart_data,
@@ -79,5 +80,30 @@ def test_savings_trend_chart_data_shapes_data_for_line_chart():
 
 def test_savings_trend_chart_data_handles_empty_input():
     result = savings_trend_chart_data([])
+
+    assert result.empty
+
+
+def test_category_breakdown_table_data_sorts_by_value_descending_with_percentage():
+    breakdown = [
+        {"category": "salute", "value": 20.0},
+        {"category": "spesa", "value": 80.0},
+        {"category": "hobby", "value": 100.0},
+    ]
+
+    result = category_breakdown_table_data(breakdown)
+
+    assert list(result.index) == ["hobby", "spesa", "salute"]
+    assert list(result.columns) == ["Totale (€)", "Percentuale"]
+    assert result.loc["hobby", "Totale (€)"] == 100.0
+    assert result.loc["spesa", "Totale (€)"] == 80.0
+    assert result.loc["salute", "Totale (€)"] == 20.0
+    assert result.loc["hobby", "Percentuale"] == 50.0
+    assert result.loc["spesa", "Percentuale"] == 40.0
+    assert result.loc["salute", "Percentuale"] == 10.0
+
+
+def test_category_breakdown_table_data_handles_empty_input():
+    result = category_breakdown_table_data([])
 
     assert result.empty
