@@ -5,6 +5,7 @@ from domain.charts import (
     category_breakdown_chart_data,
     category_breakdown_percentages,
     category_colors,
+    monthly_category_breakdown_chart_data,
     monthly_totals_chart_data,
     savings_trend_chart_data,
 )
@@ -92,5 +93,33 @@ def test_savings_trend_chart_data_shapes_data_for_line_chart():
 
 def test_savings_trend_chart_data_handles_empty_input():
     result = savings_trend_chart_data([])
+
+    assert result.empty
+
+
+def test_monthly_category_breakdown_chart_data_shapes_data_for_stacked_bar_chart():
+    breakdown = [
+        {"month": "2024-01", "category": "hobby", "value": 80.0},
+        {"month": "2024-01", "category": "spesa", "value": 20.0},
+        {"month": "2024-02", "category": "hobby", "value": 30.0},
+        {"month": "2024-02", "category": "salute", "value": 10.0},
+    ]
+
+    result = monthly_category_breakdown_chart_data(breakdown)
+
+    assert list(result.columns) == ["Mese", "Categoria", "Totale (€)", "Percentuale"]
+    january_hobby = result[(result["Mese"] == "2024-01") & (result["Categoria"] == "hobby")].iloc[0]
+    assert january_hobby["Totale (€)"] == 80.0
+    assert january_hobby["Percentuale"] == 80.0
+    january_spesa = result[(result["Mese"] == "2024-01") & (result["Categoria"] == "spesa")].iloc[0]
+    assert january_spesa["Percentuale"] == 20.0
+    february_hobby = result[(result["Mese"] == "2024-02") & (result["Categoria"] == "hobby")].iloc[0]
+    assert february_hobby["Percentuale"] == 75.0
+    february_salute = result[(result["Mese"] == "2024-02") & (result["Categoria"] == "salute")].iloc[0]
+    assert february_salute["Percentuale"] == 25.0
+
+
+def test_monthly_category_breakdown_chart_data_handles_empty_input():
+    result = monthly_category_breakdown_chart_data([])
 
     assert result.empty

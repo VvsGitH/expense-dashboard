@@ -277,6 +277,43 @@ def get_monthly_cashflow_summary(
             conn.close()
 
 
+def get_monthly_category_breakdown(
+    conn=None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    today: pd.Timestamp | None = None,
+) -> list[dict]:
+    """Monthly expense totals per category, current month always excluded (partial data)."""
+    owns_connection = conn is None
+    conn = conn or db.get_connection()
+    try:
+        transactions = _read_non_transfer_transactions(conn, date_from, date_to)
+
+        expenses = transactions[transactions["type"] == TransactionType.EXPENSE.value]
+        if expenses.empty:
+            return []
+
+        expenses = expenses.assign(
+            month=expenses["date"].dt.strftime("%Y-%m"),
+            category=expenses["description"].apply(categorize_description),
+        )
+        current_month = (today or pd.Timestamp.now()).strftime("%Y-%m")
+        expenses = expenses[expenses["month"] != current_month]
+        if expenses.empty:
+            return []
+
+        breakdown = (
+            expenses.groupby(["month", "category"])["value"]
+            .sum()
+            .reset_index()
+            .sort_values(["month", "category"])
+        )
+        return breakdown.to_dict("records")
+    finally:
+        if owns_connection:
+            conn.close()
+
+
 def get_category_breakdown(
     conn=None, date_from: str | None = None, date_to: str | None = None
 ) -> list[dict]:

@@ -55,6 +55,19 @@ def category_breakdown_percentages(totals: pd.Series) -> pd.Series:
     return totals / totals.sum() * 100
 
 
+def monthly_category_breakdown_chart_data(breakdown: list[dict]) -> pd.DataFrame:
+    """Shapes get_monthly_category_breakdown's output into a long DataFrame ready for a stacked bar chart.
+
+    "Percentuale" is each category's share of that month's total (not the period total).
+    """
+    frame = pd.DataFrame(breakdown, columns=["month", "category", "value"]).rename(
+        columns={"month": "Mese", "category": "Categoria", "value": CATEGORY_TOTAL_COLUMN}
+    )
+    month_totals = frame.groupby("Mese")[CATEGORY_TOTAL_COLUMN].transform("sum")
+    frame["Percentuale"] = frame[CATEGORY_TOTAL_COLUMN] / month_totals * 100
+    return frame
+
+
 def category_names() -> list[str]:
     """Returns the known category names, in their canonical (validated-palette) order."""
     return list(CATEGORY_COLORS)

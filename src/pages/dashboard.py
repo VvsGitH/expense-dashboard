@@ -9,11 +9,18 @@ from domain.charts import (
     category_breakdown_percentages,
     category_colors,
     category_names,
+    monthly_category_breakdown_chart_data,
     monthly_totals_chart_data,
     savings_trend_chart_data,
 )
 from domain.enums import Bank, TransactionType
-from service import get_category_breakdown, get_monthly_cashflow_summary, get_monthly_totals, get_transactions
+from service import (
+    get_category_breakdown,
+    get_monthly_cashflow_summary,
+    get_monthly_category_breakdown,
+    get_monthly_totals,
+    get_transactions,
+)
 
 st.set_page_config(page_title="Expenses Dashboard", layout="centered")
 st.markdown(
@@ -120,11 +127,10 @@ st.header("Uscite per Categoria")
 col_category_date_from, col_category_date_to = st.columns(2)
 category_date_from = col_category_date_from.date_input("Da", value=None, key="category_date_from")
 category_date_to = col_category_date_to.date_input("A", value=None, key="category_date_to")
+category_date_from_iso = category_date_from.isoformat() if category_date_from else None
+category_date_to_iso = category_date_to.isoformat() if category_date_to else None
 
-category_breakdown = get_category_breakdown(
-    date_from=category_date_from.isoformat() if category_date_from else None,
-    date_to=category_date_to.isoformat() if category_date_to else None,
-)
+category_breakdown = get_category_breakdown(date_from=category_date_from_iso, date_to=category_date_to_iso)
 category_totals = category_breakdown_chart_data(category_breakdown)
 if category_totals.empty:
     st.info("Nessuna Uscita nel periodo selezionato.")
@@ -149,3 +155,34 @@ else:
         )
     )
     st.altair_chart(category_chart, width="stretch")
+
+    st.subheader("Spese mensili per Categoria")
+
+    monthly_category_breakdown = get_monthly_category_breakdown(
+        date_from=category_date_from_iso, date_to=category_date_to_iso
+    )
+    monthly_category_chart_data = monthly_category_breakdown_chart_data(monthly_category_breakdown)
+    if monthly_category_chart_data.empty:
+        st.info("Nessuna Uscita nel periodo selezionato.")
+    else:
+        monthly_category_chart = (
+            alt.Chart(monthly_category_chart_data)
+            .mark_bar()
+            .encode(
+                x=alt.X("Mese:O"),
+                y=alt.Y(
+                    f"{CATEGORY_TOTAL_COLUMN}:Q",
+                    stack="normalize",
+                    title="Quota (%)",
+                    axis=alt.Axis(format="%"),
+                ),
+                color=alt.Color("Categoria:N", scale=category_color_scale, legend=alt.Legend(title="Categoria")),
+                tooltip=[
+                    "Mese",
+                    "Categoria",
+                    CATEGORY_TOTAL_COLUMN,
+                    alt.Tooltip("Percentuale:Q", title="Percentuale (%)", format=".1f"),
+                ],
+            )
+        )
+        st.altair_chart(monthly_category_chart, width="stretch")
