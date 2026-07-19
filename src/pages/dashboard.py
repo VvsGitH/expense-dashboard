@@ -6,7 +6,7 @@ from domain import transfers
 from domain.charts import (
     CATEGORY_TOTAL_COLUMN,
     category_breakdown_chart_data,
-    category_breakdown_table_data,
+    category_breakdown_percentages,
     category_colors,
     category_names,
     monthly_totals_chart_data,
@@ -131,7 +131,9 @@ if category_totals.empty:
 else:
     known_categories = category_names()
     category_color_scale = alt.Scale(domain=known_categories, range=category_colors(known_categories))
+    category_percentages = category_breakdown_percentages(category_totals)
     category_chart_data = category_totals.rename_axis("Categoria").reset_index(name=CATEGORY_TOTAL_COLUMN)
+    category_chart_data["Percentuale"] = category_chart_data["Categoria"].map(category_percentages)
     category_chart = (
         alt.Chart(category_chart_data)
         .mark_bar()
@@ -139,8 +141,11 @@ else:
             x=alt.X(f"{CATEGORY_TOTAL_COLUMN}:Q"),
             y=alt.Y("Categoria:N", sort="-x"),
             color=alt.Color("Categoria:N", scale=category_color_scale, legend=None),
-            tooltip=["Categoria", CATEGORY_TOTAL_COLUMN],
+            tooltip=[
+                "Categoria",
+                CATEGORY_TOTAL_COLUMN,
+                alt.Tooltip("Percentuale:Q", title="Percentuale (%)", format=".1f"),
+            ],
         )
     )
     st.altair_chart(category_chart, width="stretch")
-    st.dataframe(category_breakdown_table_data(category_breakdown), width="stretch")

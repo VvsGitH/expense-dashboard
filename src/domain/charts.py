@@ -50,17 +50,9 @@ def category_breakdown_chart_data(breakdown: list[dict]) -> pd.Series:
     return pd.DataFrame(breakdown, columns=["category", "value"]).set_index("category")["value"]
 
 
-def category_breakdown_table_data(breakdown: list[dict]) -> pd.DataFrame:
-    """Shapes get_category_breakdown's output into a category-indexed table with totals and share of total."""
-    totals = category_breakdown_chart_data(breakdown)
-    if totals.empty:
-        return pd.DataFrame()
-    return pd.DataFrame(
-        {
-            CATEGORY_TOTAL_COLUMN: totals,
-            "Percentuale": totals / totals.sum() * 100,
-        }
-    ).sort_values(CATEGORY_TOTAL_COLUMN, ascending=False)
+def category_breakdown_percentages(totals: pd.Series) -> pd.Series:
+    """Computes each category's share of the total, as percentage points (0-100)."""
+    return totals / totals.sum() * 100
 
 
 def category_names() -> list[str]:
