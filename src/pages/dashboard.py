@@ -124,6 +124,8 @@ else:
 
 st.header("Uscite per Categoria")
 
+st.subheader("Totale Uscite per Categoria")
+
 col_category_date_from, col_category_date_to = st.columns(2)
 category_date_from = col_category_date_from.date_input("Da", value=None, key="category_date_from")
 category_date_to = col_category_date_to.date_input("A", value=None, key="category_date_to")
@@ -156,7 +158,7 @@ else:
     )
     st.altair_chart(category_chart, width="stretch")
 
-    st.subheader("Spese mensili per Categoria")
+    st.subheader("Uscite mensili per Categoria")
 
     monthly_category_breakdown = get_monthly_category_breakdown(
         date_from=category_date_from_iso, date_to=category_date_to_iso
