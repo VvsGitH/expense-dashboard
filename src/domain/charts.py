@@ -8,12 +8,12 @@ CATEGORY_COLORS = {
     "spesa": "#4daf4a",
     "shopping": "#984ea3",
     "hobby": "#ff7f00",
-    "viaggi": "#ffff33",
     "fitness": "#a65628",
     "auto": "#f781bf",
-    "tasse": "#4012bd",
+    "viaggi": "#a68f00",
+    "tasse": "#00917f",
     "contanti": "#7f66c2",
-    "other": "#bdbdbd",
+    "other": "#c58e50",
 }
 
 

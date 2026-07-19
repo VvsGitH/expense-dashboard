@@ -1,0 +1,70 @@
+Status: ready-for-agent
+
+# Ripartizione Uscite per Categoria — da torta a bar chart
+
+## Problem Statement
+
+Nella pagina "Dashboard", la sezione "Uscite per Categoria" mostra oggi un grafico a torta (matplotlib, `ax.pie`) con fino a 11 fette (una per Categoria, incluso il fallback "other"). Con così tante fette, anche con colori ben scelti, il grafico è difficile da leggere: le fette piccole si accavallano, le etichette di testo sulle fette si sovrappongono, e non è possibile confrontare a colpo d'occhio due categorie di importo simile. Il grafico mostra solo una percentuale per fetta (`autopct`), non l'importo in euro, e — essendo reso con matplotlib/`st.pyplot` — è l'unico grafico statico della dashboard, senza tooltip on-hover e senza il tema chiaro/scuro nativo che hanno già gli altri due grafici (`st.bar_chart`, `st.line_chart`).
+
+## Solution
+
+Sostituire il grafico a torta con un bar chart orizzontale nativo di Streamlit (`st.bar_chart`, `horizontal=True`), una barra per Categoria, ordinato per importo decrescente, con lo stesso colore per Categoria già in uso oggi (`CATEGORY_COLORS`), corretto nei 3 valori che non superavano la verifica di leggibilità/accessibilità colore. Accanto al grafico viene aggiunta una tabella con Categoria, importo in € e percentuale sul totale delle Uscite del periodo, sempre visibile (non solo in hover). Il filtro di date indipendente della sezione (`pie_date_from`/`pie_date_to`) e la logica di calcolo (`get_category_breakdown`, esclusione Entrate e Trasferimenti cross-bank) restano invariati.
+
+## User Stories
+
+1. Come utente, voglio vedere la ripartizione delle Uscite per Categoria come barre orizzontali invece che come fette di torta, così da poter confrontare a colpo d'occhio categorie con importi simili senza dover stimare l'area di una fetta.
+2. Come utente, voglio che le barre siano ordinate dalla Categoria con importo più alto a quella più basso, così da vedere subito quali categorie pesano di più senza dover cercare la barra più lunga.
+3. Come utente, voglio che ogni barra sia etichettata con il nome della Categoria, così da identificarla senza dover associare un colore a un nome tramite legenda.
+4. Come utente, voglio vedere, oltre al grafico, una tabella con Categoria, importo in € e percentuale sul totale, così da leggere la cifra esatta di ogni categoria senza dover passare il mouse sopra ogni barra.
+5. Come utente, voglio che ogni Categoria mantenga il proprio colore distintivo (coerente con quello usato oggi), così che il colpo d'occhio resti coerente con l'esperienza attuale.
+6. Come utente, voglio che i colori "viaggi", "tasse" e "other" — oggi troppo chiari/scuri o privi di saturazione — siano sostituiti con varianti più leggibili, così che ogni barra sia effettivamente distinguibile e non solo teoricamente colorata.
+7. Come utente, voglio che il filtro di date indipendente già esistente per questa sezione continui a funzionare esattamente come oggi, così da non dover ri-apprendere l'uso della sezione.
+8. Come utente, voglio che, quando non ci sono Uscite nel periodo selezionato, venga mostrato lo stesso messaggio informativo già usato oggi ("Nessuna Uscita nel periodo selezionato."), invece di un grafico o una tabella vuoti.
+9. Come utente, voglio che il grafico abbia lo stesso comportamento di tooltip on-hover e lo stesso supporto al tema chiaro/scuro degli altri due grafici della dashboard, così da avere un'esperienza visiva coerente in tutta la pagina.
+10. Come sviluppatore, voglio che la logica di calcolo della ripartizione (`get_category_breakdown`) resti invariata, così da non introdurre rischi di regressione sull'esclusione di Entrate e Trasferimenti cross-bank già testata.
+11. Come sviluppatore, voglio una nuova funzione pura in `domain/charts.py` che calcoli i dati per la tabella (Categoria, importo, percentuale) a partire dallo stesso output di `get_category_breakdown` già usato per il grafico, così da non duplicare l'accesso ai dati né la logica di esclusione/filtro.
+12. Come sviluppatore, voglio che questa nuova funzione sia testabile senza DB e senza Streamlit, coerentemente con le altre funzioni di shaping già presenti in `domain/charts.py` (`monthly_totals_chart_data`, `savings_trend_chart_data`, `category_breakdown_chart_data`).
+13. Come sviluppatore, voglio che i 3 colori corretti in `CATEGORY_COLORS` siano stati verificati con lo script di validazione della palette (banda di luminosità, soglia di chroma, separazione CVD sulle coppie adiacenti, pavimento a visione normale), così da non introdurre colori "a occhio".
+14. Come sviluppatore, voglio che, una volta rimosso l'ultimo utilizzo di matplotlib nella dashboard, la dipendenza `matplotlib` sia rimossa da `requirements.txt`, così da non tenere in piedi una dipendenza inutilizzata.
+15. Come sviluppatore, voglio che i nomi delle chiavi dei widget Streamlit di questa sezione (oggi `pie_date_from`/`pie_date_to`) siano rinominati per riflettere che non si tratta più di un grafico a torta, così da non lasciare un nome fuorviante nel codice.
+
+## Implementation Decisions
+
+- **Seam — `domain.charts.category_breakdown_chart_data`**: invariata. Continua a restituire una `pd.Series` indicizzata per Categoria (nome colonna `value`), pronta per essere passata a `st.bar_chart` con `horizontal=True` e `sort="-value"` (ordinamento decrescente nativo, nessun sort manuale in `dashboard.py`).
+- **Seam — nuova funzione `domain.charts.category_breakdown_table_data(breakdown: list[dict]) -> pd.DataFrame`**: stesso input di `category_breakdown_chart_data` (l'output grezzo di `get_category_breakdown`, lista di dict `{"category": ..., "value": ...}`). Produce un DataFrame indicizzato per Categoria, ordinato per importo decrescente, con due colonne: l'importo in € e la percentuale sul totale delle Uscite del periodo (somma di tutti gli importi nell'input). Con input vuoto, restituisce un DataFrame vuoto (stesso comportamento di `category_breakdown_chart_data` con lista vuota).
+- **`domain.charts.category_colors`**: invariata nella firma; beneficia automaticamente della correzione dei 3 colori in `CATEGORY_COLORS`.
+- **`domain.charts.CATEGORY_COLORS` — 3 colori corretti** (verificati con lo script di validazione della skill `dataviz`, `--mode light`, controllo sia sulle coppie adiacenti sia su tutte le 55 coppie possibili con `--pairs all`):
+  - `viaggi`: da `#ffff33` (troppo chiaro, fuori banda di luminosità) a `#a68f00`
+  - `tasse`: da `#4012bd` (troppo scuro, fuori banda di luminosità) a `#00917f`
+  - `other`: da `#bdbdbd` (privo di saturazione, non supera la soglia di chroma) a `#c58e50` — non `#9c6030` come nella prima bozza: quel marrone-tan risultava troppo simile a `fitness` (`#a65628`, anch'esso un marrone) sotto `--pairs all`, con una separazione ΔE 2.7 a visione normale — indistinguibile anche senza daltonismo, non solo un limite CVD. Rilevato dall'utente durante la revisione visiva del ticket, non dallo script (che valida solo le coppie adiacenti per default). `#c58e50` (un ambra/ocra dorato) risolve la collisione: ΔE 15.2 a visione normale contro `fitness`, e non introduce alcuna nuova coppia peggiore altrove nella verifica `--pairs all`.
+  - Gli altri 8 colori restano invariati.
+  - Per far passare anche la separazione CVD sulle coppie adiacenti (non solo banda di luminosità e soglia di chroma), l'ordine delle chiavi nel dizionario è stato leggermente cambiato: `viaggi` si sposta da subito-dopo-`hobby` a subito-dopo-`auto` (per non restare adiacente al colore arancione di `hobby`, troppo simile sotto simulazione di daltonismo). L'ordine finale è: `salute, casa, spesa, shopping, hobby, fitness, auto, viaggi, tasse, contanti, other`. Questo riordino non ha alcun effetto sul comportamento a runtime (il lookup è sempre per chiave, non per posizione) — serve solo a documentare l'ordine "teorico" di riferimento usato per la verifica.
+  - **Limite noto e accettato**: con `--pairs all` sull'intero set di 11 colori resta una collisione preesistente, non toccata da questo lavoro — `contanti` (`#7f66c2`) contro `casa` (`#377eb8`) e contro `shopping` (`#984ea3`), entrambe coppie di colori originali invariati. È una collisione strutturale: 10 degli 11 colori coprono già ciascuno una famiglia di tinta diversa (rosso, blu, verde, viola, arancio, marrone, rosa, oliva, teal, violetto), quindi l'11° (`other`) deve necessariamente condividere una famiglia con uno degli altri — impossibile da risolvere senza toccare uno degli 8 colori dichiarati invariati da questo ticket, fuori scope. Mitigato dal fatto che ogni barra è comunque etichettata direttamente (nome Categoria sull'asse) ed è presente la tabella affiancata — quindi l'identità della categoria non dipende mai dal solo colore.
+- **Pagina Dashboard (`src/pages/dashboard.py`)**: il blocco matplotlib (`plt.subplots()` / `ax.pie(...)` / `st.pyplot(fig)`) viene sostituito con `st.bar_chart(category_totals, horizontal=True, color=category_colors(category_totals.index), sort="-value")`, seguito dalla tabella prodotta da `category_breakdown_table_data(category_breakdown)` resa con `st.dataframe`. L'import `matplotlib.pyplot` viene rimosso (nessun altro utilizzo nel file dopo questa modifica). Le chiavi dei widget data-range (`pie_date_from`/`pie_date_to` e le relative variabili Python) vengono rinominate per riflettere che non è più un grafico a torta (es. prefisso `category_` al posto di `pie_`).
+- **Dipendenza**: `matplotlib` viene rimossa da `requirements.txt` — dopo questa modifica non ha più alcun utilizzo nel codebase (verificato: era usata solo in questo blocco).
+- **Stato vuoto**: quando `category_totals` è vuoto, resta il messaggio informativo già esistente ("Nessuna Uscita nel periodo selezionato."), invece di grafico e tabella.
+
+## Testing Decisions
+
+- Segue le convenzioni già stabilite in `docs/issues/streamlit-expenses-dashboard/spec.md` e riprese in `docs/issues/andamento-risparmi/spec.md`: test attraverso il livello di dominio (funzioni pure di shaping in `domain/charts.py`), mai attraverso automazione della UI Streamlit; si verifica comportamento esterno osservabile (input → output).
+- Prior art diretto: `tests/test_charts.py`, in particolare `test_category_breakdown_chart_data_shapes_data_for_pie_chart` / `test_category_breakdown_chart_data_handles_empty_input` come pattern da replicare per la nuova `category_breakdown_table_data`.
+- Casi da coprire in `tests/test_charts.py` (nuovi test per `category_breakdown_table_data`, i test esistenti restano invariati):
+  - Su un breakdown noto con almeno 3 categorie di importo diverso, il DataFrame risultante è ordinato per importo decrescente, riporta l'importo corretto per ciascuna Categoria e la percentuale corretta sul totale (somma di tutti gli importi in input).
+  - Con lista di input vuota, il DataFrame risultante è vuoto (stesso comportamento di `category_breakdown_chart_data`).
+- Non è previsto un test Python automatico per le proprietà percettive dei colori (banda di luminosità, chroma, separazione CVD) — queste sono state verificate una tantum in fase di spec con lo script `validate_palette.js` della skill `dataviz` (vedi Implementation Decisions), non sono una proprietà che un test unitario Python possa esprimere in modo sensato.
+- Verifica end-to-end in browser richiesta a fine implementazione (stesso pattern del ticket `06-dashboard-grafici-a-torta.md`): caricare Uscite in categorie diverse, controllare che il bar chart mostri barre ordinate, colori distinti e coerenti con la tabella, tooltip on-hover funzionante, e che il filtro data indipendente della sezione continui a funzionare.
+
+## Out of Scope
+
+- Raggruppare le categorie minori in un bucket "Altro" oltre una soglia — esplicitamente scartato: si è scelto il bar chart proprio per gestire tutte le 11 categorie senza dover troncare la coda.
+- Piena conformità CVD su tutte le coppie non-adiacenti (`--pairs all`) tra gli 11 colori — limite noto e accettato, vedi Implementation Decisions.
+- Qualsiasi modifica a `get_category_breakdown` (query, esclusione Trasferimenti/Entrate, range di date indipendente) — resta invariata.
+- Nuove voci di glossario in `CONTEXT.md` o nuovi ADR — questo lavoro non introduce un nuovo concetto di dominio, solo un cambio di forma di presentazione di un concetto già documentato (Categoria); non c'è quindi materiale nuovo da modellare.
+- Formattazione numerica localizzata (es. separatore delle migliaia, virgola decimale) su tabella o tooltip del grafico — si usa la formattazione di default di `st.dataframe`/`st.bar_chart`, coerentemente con il resto della dashboard.
+- Colore "a singolo hue" per le barre (raccomandazione di default della skill `dataviz` per confronti di magnitudine) — scartato esplicitamente: si mantiene un colore distinto per Categoria per coerenza con l'esperienza attuale e in previsione di un possibile riuso futuro delle stesse categorie in altri grafici.
+
+## Further Notes
+
+- Spec della feature "madre" (dashboard) in `docs/issues/streamlit-expenses-dashboard/spec.md`; ticket più direttamente correlato: `06-dashboard-grafici-a-torta.md` (di cui questo lavoro sostituisce la forma del grafico, lasciandone invariata la checklist storica come record di cosa fu costruito allora).
+- Emerso durante la sessione di grilling che ha preceduto questa spec: la scelta bar-chart-vs-torta e la scelta di correggere solo i 3 colori fuori standard (non l'intera palette) sono state guidate dalla skill `dataviz` (`references/choosing-a-form.md`, `references/color-formula.md`, `references/anti-patterns.md`) e verificate con il suo script `validate_palette.js`, non da preferenza estetica non verificata.
+- Il riordino delle chiavi in `CATEGORY_COLORS` (vedi Implementation Decisions) è un dettaglio di documentazione/verifica, non un cambio di comportamento: nessun codice esistente itera il dizionario per posizione.
